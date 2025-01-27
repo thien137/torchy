@@ -33,3 +33,6 @@ def abs(x: Tensor):
 
 def sign(x: Tensor):
     return Sign.apply(x)
+
+def mean(x: Tensor):
+    return Mean.apply(x)

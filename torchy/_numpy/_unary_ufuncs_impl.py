@@ -215,3 +215,22 @@ class Sign(Function):
             return torchy.zeros(a.shape)
         
         return list(map(Tensor, _backward(grad_output._array, a._array)))
+    
+class Mean(Function):
+    @staticmethod
+    def forward(ctx: FunctionCtx, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        
+        def _forward(a: ArrayType) -> ArrayType:
+            return engine.mean(a)
+        
+        return Tensor(_forward(a._array))
+    
+    @staticmethod 
+    def backward(ctx: FunctionCtx, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_inputs
+        
+        def _backward(grad_output: ArrayType, a: ArrayType) -> List[ArrayType]:
+            return grad_output * torchy.ones(a.shape) / a.size
+        
+        return list(map(Tensor, _backward(grad_output._array, a._array)))

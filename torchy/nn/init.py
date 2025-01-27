@@ -21,20 +21,20 @@ def calculate_gain(activation, param=None):
         case _:
             raise ValueError(f"Unsupported activation {activation}")
 
-def uniform(
+def uniform_(
         tensor: Tensor,
         a: float = 0.0,
         b: float = 1.0
 ) -> Tensor:
     return
 
-def normal(
+def normal_(
         tensor: Tensor,
         mean: float = 0.0,
         std: float = 1.0,
         generator: Optional[torchy.Generator] = None
 ) -> Tensor:
-    return tensor.normal_(mean, std, generator=generator)
+    return 
 
 def kaiming_uniform(
         tensor: Tensor
