@@ -19,9 +19,9 @@ class BackwardFunction:
 
     def backward(self, grad_output):
         grad_inputs = self._forward_cls.backward(self.ctx, grad_output)
-        for inp, grad_inp in zip(self.ctx.saved_inputs, grad_inputs):
-            if inp.requires_grad:
-                inp.backward(grad_inp)
+        for i in range(len(self.ctx.saved_inputs)):
+            if self.ctx.saved_inputs[i].requires_grad:
+                self.ctx.saved_inputs[i].backward(grad_inputs[i])
 
 class FunctionMeta(type):
     """Function metaclass -> Function class factory.
@@ -61,10 +61,6 @@ class Function(metaclass=FunctionMeta):
         raise NotImplementedError(
             """You must implement the backward function for custom autograd.Function"""
         )
-        
-    @staticmethod 
-    def _propagate_backward(method) -> None:
-        pass
 
     @classmethod
     def apply(cls, *inputs) -> Tuple:
@@ -83,4 +79,3 @@ class Function(metaclass=FunctionMeta):
                 output.grad_fn = backward_fn
 
         return outputs[0] if len(outputs) == 1 else outputs
-        

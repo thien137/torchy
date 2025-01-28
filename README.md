@@ -22,5 +22,4 @@ torchy/
 # TODO
 - Implement autograd propagation in _propagate_backwward
     - Figure out Gradient Accumulation
-- Figure out modules
 - Figure out optimizer

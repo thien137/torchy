@@ -21,12 +21,21 @@ def calculate_gain(activation, param=None):
         case _:
             raise ValueError(f"Unsupported activation {activation}")
 
+def _calculate_correct_fan(tensor: Tensor, mode: str):
+    mode = mode.lower()
+    valid_modes = ["fan_in", "fan_out"]
+    if mode not in valid_modes:
+        raise ValueError(f"Mode must be one of {valid_modes}")
+    
+    fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
+    return fan_in if mode == "fan_in" else fan_out
+
 def uniform_(
         tensor: Tensor,
         a: float = 0.0,
         b: float = 1.0
 ) -> Tensor:
-    return
+    tensor._uniform(a, b)
 
 def normal_(
         tensor: Tensor,
@@ -34,14 +43,21 @@ def normal_(
         std: float = 1.0,
         generator: Optional[torchy.Generator] = None
 ) -> Tensor:
-    return 
+    tensor.normal_(mean, std)
 
 def kaiming_uniform(
-        tensor: Tensor
+        tensor: Tensor,
+        a=0,
+        mode: str = "fan_in",
+        nonlinearity: str = "relu"
 ) -> Tensor:
-    # TODO
-    return tensor
-
+    fan = _calculate_correct_fan(tensor, mode)
+    gain = calculate_gain(nonlinearity, a)
+    std = gain / math.sqrt(fan)
+    bound = math.sqrt(3.0) * std
+    
+    tensor.uniform_(-bound, bound)
+    
 def _calculate_fan_in_and_fan_out(tensor: Tensor):
     dimensions = tensor.dim()
     if dimensions < 2:

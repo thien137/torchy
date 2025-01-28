@@ -77,18 +77,47 @@ class Tensor:
             self, grad_output: Optional['Tensor'] = None
     ):
         if not self.requires_grad:
-            raise RuntimeError("The tensor does not require gradients. Set requires_grad=True to track gradients.")
-
+            raise RuntimeError("Cannot call backward on a tensor that does not require gradients.")
+        
         if grad_output is None:
-            grad_output = torchy.ones(self.shape, device=self.device) # Gradient of scalar w.r.t itself
-
-        if self.grad_fn is not None:
-            self.grad_fn.backward(grad_output)
-
-        self.grad = grad_output
+            if self.shape == ():
+                grad_output = Tensor(1.0, device=self.device)
+            else:
+                raise RuntimeError("grad_output must be specified for non-scalar tensors.")
+        
+        if grad_output.shape != self.shape:
+            raise RuntimeError(f"grad_output shape {grad_output.shape} does not match tensor shape {self.shape}.")
+        
+        if self.grad_fn is None:
+            raise RuntimeError("Cannot call backward on a tensor that does not have a grad_fn.")
+        
+        self.grad_fn.backward(grad_output)
+        
+        if not self.grad:
+            self.grad = grad_output
+        else:
+            self.grad += grad_output
+        
+    def accumulate_gradient(
+        self, grad: 'Tensor'
+    ):
+        if not self.requires_grad:
+            raise RuntimeError("The tensor does not require gradients. Set requires_grad=True to track gradients.")
+        
+        if self.grad is None:
+            self.grad = grad
+        else:
+            self.grad += grad
     
     @property 
     def shape(self) -> Tuple[int]:
         return self._array.shape
 
+    def uniform(self, a=0.0, b=1.0) -> None:
+        # TODO: Implement this later
+        self._array = np.random.uniform(low=a, high=b, size=self._array.shape)
+    
+    def normal(self, mean=0.0, std=1.0) -> None:
+        # TODO: Implement this later
+        self._array = np.random.normal(loc=mean, scale=std, size=self._array.shape)
         
