@@ -2,7 +2,7 @@ import torchy
 from torchy import Tensor
 from torchy.nn import Parameter 
 
-from typing import Optional, Union, Callable, Any
+from typing import Optional, Union, Callable, Any, Iterator
 
 class Module:
     """Base class for all neural network modules."""
@@ -14,27 +14,11 @@ class Module:
     _buffers: dict[str, Optional[torchy.Tensor]]
 
     def __init__(self):
-        training: bool = super().__setattr__("training", True)
-        _parameters: dict[str, Optional[Parameter]] = super().__setattr__("parameters", {})
-        _modules: dict[str, Optional[Module]] = super().__setattr__("modules", {})
-
-    def register_parameter(self, name: str, param: Optional[Parameter]) -> None:
-        if param is None:
-            self._parameters[name] = None 
-        elif not isinstance(param, Parameter):
-            raise TypeError(
-                f"cannot assign '{torchy.typename(param)}' object to parameter '{name}' "
-                "(torch.nn.Parameter or None required)"
-            )
-        elif param.grad_fn:
-            raise ValueError(
-                f"Cannot assign non-leaf Tensor to parameter '{name}'. Model "
-                f"parameters must be created explicitly. To express '{name}' "
-                "as a function of anotehr Tensor, computer the value in "
-                "the forward() method."
-            )
-        else:
-            self._parameters[name] = param
+        super().__setattr__("training", True)
+        super().__setattr__("_parameters", {})
+        super().__setattr__("_modules", {})
+        
+        super().__init__()
 
     def _forward_unimplemented(self, *input: Any) -> None:
         raise NotImplementedError(
@@ -43,20 +27,14 @@ class Module:
         
     forward: Callable[..., Any] = _forward_unimplemented
     
-    def __call___(self, *input: Any, **kwargs: Any) -> Any:
+    def __call__(self, *input: Any, **kwargs: Any) -> Any:
         return self.forward(*input, **kwargs)
 
+    def register_parameter(self, name: str, param: Optional[Parameter]) -> None:
+        self._parameters[name] = param
+
     def add_module(self, name: str, module: Optional['Module']) -> None:
-        if not isinstance(module, Module) and module is not None:
-            raise TypeError(f"{module} is not a Module subclass")
-        elif not isinstance(name, str):
-            raise TypeError(
-                f"module name should be a string. Got {name}"
-            )
-        elif hasattr(self, name) and name not in self._modules:
-            raise KeyError(f"attribute {name} already exists")
-        else:
-            self._modules[name] = module
+        self._modules[name] = module
 
     def get_parameter(self, target: str) -> Parameter:
         module_path, _, param_name = target.rpartition(".")
@@ -74,65 +52,89 @@ class Module:
             raise AttributeError("`" + param_name + "` is not an " "nn.Parameter")
 
         return param
+    
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        for _name, param in self.named_parameters(recurse=recurse):
+            yield param
+
+    def modules(self) -> Iterator['Module']:
+        for _, module in self.named_modules():
+            yield module
+
+    def named_parameters(
+        self, prefix: str = "", recurse: bool = True
+    ) -> Iterator[tuple[str, Parameter]]:
+        gen = self.named_members(
+            lambda module: module._parameters.items(),
+            prefix=prefix,
+            recurse=recurse,
+        )
+        for elem in gen:
+            yield elem
+
+    def named_members(
+        self, get_members_fn: Callable[['Module'], Iterator], prefix: str = "", recurse: bool = True
+    ) -> Iterator[tuple[str, Any]]:
+        memo = set()
+        modules = (
+            self.named_modules(prefix=prefix) if recurse else [(prefix, self)]
+        )
+
+        for module_prefix, module in modules:
+            members = get_members_fn(module)
+            for k, v in members:
+                if v is None or v in memo:
+                    continue
+                memo.add(v)
+                name = module_prefix + ("." if module_prefix else "") + k
+                yield name, v
+    
+    def named_modules(
+        self, memo: Optional[set['Module']] = None, prefix: str = "", remove_duplicate: bool = True
+    ) -> Iterator[tuple[str, 'Module']]:
+        if memo is None:
+            memo = set() 
+        if self not in memo:
+            if remove_duplicate:
+                memo.add(self)
+            yield prefix, self
+            for name, module in self._modules.items():
+                if module is None:
+                    continue
+                submodule_prefix = prefix + ("." if prefix else "") + name
+                yield from module.named_modules(memo, submodule_prefix, remove_duplicate)
 
     def get_submodule(self, target: str) -> torchy.Tensor:
-        module_path, _, buffer_name = target.rpartition(".")
+        if target == "":
+            return self
+        
+        atoms: list[str] = target.split(".")
+        mod: torchy.nn.Module = self
 
-        mod: torchy.nn.Module = self.get_submodule(module_path)
+        for atom in atoms:
+            if not hasattr(mod, atom):
+                raise AttributeError(
+                    mod._get_name() + " has no attribute `" + atom + "`"
+                )
+            mod = getattr(mod, atom)
 
-        if not hasattr(mod, buffer_name):
-            raise AttributeError(
-                mod._get_name() + " has no attribute `" + buffer_name + "`"
-            )
-
-        buffer: torchy.Tensor = getattr(mod, buffer_name)
-
-        if buffer_name not in mod._buffers:
-            raise AttributeError("`" + buffer_name + "` is not a buffer")
-
-        return buffer
+            if not isinstance(mod, torchy.nn.Module):
+                raise AttributeError("`" + atom + "` is not an " "nn.Module")
+        
+        return mod
     
     def _get_name(self):
         return self.__class__.__name__
 
     def __setattr__(self, name: str, value: object) -> None:
-        def remove_from(*dicts_or_sets):
-            for d in dicts_or_sets:
-                if name in d:
-                    if isinstance(d, dict):
-                        del d[name]
-                    else:
-                        d.remove(name)
-        
-        params = self.__dict__.get('_parameters')
         if isinstance(value, Parameter):
-            if params is None:
-                raise AttributeError(
-                    "cannot assign parameters before Module.__init__() call"
-                )
-            remove_from(self.__dict__, self._parameters)
             self.register_parameter(name, value)
-        elif params is not None and name in params:
-            if value is not None:
-                raise TypeError("cannot assign to parameter")
-            self.register_parameter(name, value)
+        elif isinstance(value, Module):
+            self.add_module(name, value)
         else:
-            modules = self.__dict__.get('_modules')
-            if isinstance(value, Module):
-                if modules is None:
-                    raise AttributeError(
-                        "cannot assign module before Module.__init__() call"
-                    )
-                remove_from(self.__dict__, self._modules)
-                self.add_module(name, value)
-            elif modules is not None and name in modules:
-                if value is not None:
-                    raise TypeError("cannot assign to module")
-                self.add_module(name, value)
-            else:
-                object.__setattr__(self, name, value)
-                
-    def __getattr__(self, name: str) -> Union[Tensor, "Module"]:
+            super().__setattr__(name, value)
+
+    def __getattr__(self, name: str) -> Union[Parameter, "Module"]:
         if "_parameters" in self.__dict__:
             _parameters = self.__dict__["_parameters"]
             if name in _parameters:

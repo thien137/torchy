@@ -4,17 +4,17 @@ import cupy as cp
 import torchy
 
 from types import ModuleType
-from typing import Union
+from typing import Union, List
 
 ArrayType = Union[np.ndarray, cp.ndarray]
 
-def infer_engine_from_array(a: ArrayType) -> Union[ModuleType, ModuleType]:
-    if isinstance(a, np.ndarray):
-        return np 
-    elif isinstance(a, cp.ndarray):
-        return cp
-    else:
-        raise RuntimeError(f"Did not expect underlying datatype {type(a)}")
+def infer_engine_from_arrays(*a: List[ArrayType]) -> Union[ModuleType, ModuleType]:
+    for arr in a:
+        if isinstance(arr, np.ndarray):
+            return np
+        elif isinstance(arr, cp.ndarray):
+            return cp
+    raise ValueError("Could not infer engine from arrays")
     
 def infer_engine() -> ModuleType:
     match torchy.get_default_device():

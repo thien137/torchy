@@ -1,10 +1,7 @@
 """This file contains utilities for initializing neural network parameters."""
 
 import math
-import torchy 
 from torchy import Tensor
-
-from typing import Optional 
 
 def calculate_gain(activation, param=None):
     match activation:
@@ -35,13 +32,12 @@ def uniform_(
         a: float = 0.0,
         b: float = 1.0
 ) -> Tensor:
-    tensor._uniform(a, b)
+    tensor.uniform_(a, b)
 
 def normal_(
         tensor: Tensor,
         mean: float = 0.0,
         std: float = 1.0,
-        generator: Optional[torchy.Generator] = None
 ) -> Tensor:
     tensor.normal_(mean, std)
 
@@ -70,4 +66,8 @@ def _calculate_fan_in_and_fan_out(tensor: Tensor):
     receptive_field_size = 1
     if tensor.dim() > 2:
         for s in tensor.shape[2:]:
-            receptive_field_size 
+            receptive_field_size *= s
+    fan_in = num_input_fmaps * receptive_field_size
+    fan_out = num_output_fmaps * receptive_field_size
+
+    return fan_in, fan_out

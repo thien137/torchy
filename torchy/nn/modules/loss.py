@@ -13,5 +13,5 @@ class _Loss(Module):
         self.reduction = reduction
     
 class MSELoss(_Loss):
-    def forward(self, input: Tensor, target: Tensor, reduction: str = 'mean') -> Tensor:
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return F.mse_loss(input, target, reduction=self.reduction)

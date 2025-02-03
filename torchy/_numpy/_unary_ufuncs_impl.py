@@ -234,3 +234,22 @@ class Mean(Function):
             return grad_output * torchy.ones(a.shape) / a.size
         
         return list(map(Tensor, _backward(grad_output._array, a._array)))
+    
+class Sum(Function):
+    @staticmethod
+    def forward(ctx: FunctionCtx, a: Tensor, axis=None) -> Tensor:
+        ctx.save_for_backward(a)
+        
+        def _forward(a: ArrayType, axis=None) -> ArrayType:
+            return engine.sum(a, axis=axis)
+        
+        return Tensor(_forward(a._array, axis=None))
+    
+    @staticmethod 
+    def backward(ctx: FunctionCtx, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_inputs
+        
+        def _backward(grad_output: ArrayType, a: ArrayType) -> List[ArrayType]:
+            return grad_output * torchy.ones(a.shape)
+        
+        return list(map(Tensor, _backward(grad_output._array, a._array)))

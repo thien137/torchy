@@ -43,3 +43,7 @@ def minimum(x: Tensor, y: Tensor):
 @_binary_check_device_and_convert_input_to_tensor
 def equal(x: Tensor, y: Tensor):
     return Equal.apply(x, y)
+
+@_binary_check_device_and_convert_input_to_tensor
+def dot(x: Tensor, y: Tensor):
+    return Dot.apply(x, y)

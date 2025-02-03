@@ -1,6 +1,7 @@
 import numpy as np
 import cupy as cp
 import torchy
+from torchy.autograd import AccumulateGradient
 
 from typing import Optional, Tuple
 
@@ -24,6 +25,9 @@ class Tensor:
         self.requires_grad = requires_grad
         self.grad_fn = None 
         self.grad = None
+
+        if self.requires_grad:
+            self = AccumulateGradient.apply(self)
 
     def _to_backend_array(self, data):
          match self.device:
@@ -97,27 +101,21 @@ class Tensor:
             self.grad = grad_output
         else:
             self.grad += grad_output
-        
-    def accumulate_gradient(
-        self, grad: 'Tensor'
-    ):
-        if not self.requires_grad:
-            raise RuntimeError("The tensor does not require gradients. Set requires_grad=True to track gradients.")
-        
-        if self.grad is None:
-            self.grad = grad
-        else:
-            self.grad += grad
     
     @property 
     def shape(self) -> Tuple[int]:
         return self._array.shape
 
-    def uniform(self, a=0.0, b=1.0) -> None:
+    def uniform_(self, a=0.0, b=1.0) -> None:
         # TODO: Implement this later
         self._array = np.random.uniform(low=a, high=b, size=self._array.shape)
     
-    def normal(self, mean=0.0, std=1.0) -> None:
+    def normal_(self, mean=0.0, std=1.0) -> None:
         # TODO: Implement this later
         self._array = np.random.normal(loc=mean, scale=std, size=self._array.shape)
-        
+    
+    def dim(self):
+        return len(self._array.shape)
+    
+    def size(self, dim: int):
+        return self._array.shape[dim]

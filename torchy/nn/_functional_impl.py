@@ -2,8 +2,8 @@ import torchy
 from torchy import Tensor 
 from torchy.autograd import Function, FunctionCtx
 
-import _engine_wrapper as engine
-from _engine_wrapper import ArrayType
+import torchy._engine_wrapper as engine
+from torchy._engine_wrapper import ArrayType
 
 from typing import List
 
@@ -13,7 +13,7 @@ class Relu(Function):
         ctx.save_for_backward(a)
         
         def _forward(a: ArrayType) -> ArrayType:
-            return ctx.engine.maximum(0, a)
+            return engine.maximum(0, a)
             
         return Tensor(_forward(a._array))
     
@@ -25,7 +25,7 @@ class Relu(Function):
             grad_a = torchy.ones(a.shape)
             grad_a[a <= 0] = 0
             return grad_output * grad_a
-        
+
         return Tensor(_backward(grad_output._array, a._array))
     
 class Sigmoid(Function):
@@ -86,7 +86,7 @@ class Linear(Function):
         def _backward(grad_output: ArrayType, input: ArrayType, weight: ArrayType, bias: ArrayType) -> List[ArrayType]:
             grad_input = engine.dot(grad_output, weight.T)
             grad_weight = engine.dot(input.T, grad_output)
-            grad_bias = engine.sum(grad_output, axis=0)
+            grad_bias = engine.dot(engine.ones((1, grad_output.shape[0])), grad_output).T
             
             return grad_input, grad_weight, grad_bias
         

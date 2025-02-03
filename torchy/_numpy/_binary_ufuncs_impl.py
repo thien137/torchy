@@ -69,7 +69,7 @@ class Div(Function):
         def _forward(a: ArrayType, b: ArrayType) -> ArrayType:
             return a / b
         
-        return list(map(Tensor, _forward(a._array, b._array)))
+        return Tensor(_forward(a._array, b._array))
         
     @staticmethod
     def backward(ctx: FunctionCtx, grad_output: Tensor) -> Tensor:
@@ -172,4 +172,21 @@ class Equal(Function):
         
         return list(map(Tensor, _backward(grad_output._array, a._array, b._array)))
     
+class Dot(Function):
+    @staticmethod 
+    def forward(ctx: FunctionCtx, a: Tensor, b: Tensor) -> Tensor:
+        ctx.save_for_backward(a, b)
+        
+        def _forward(a: ArrayType, b: ArrayType) -> ArrayType:
+            return engine.dot(a, b)
+        
+        return Tensor(_forward(a._array, b._array))
     
+    @staticmethod 
+    def backward(ctx: FunctionCtx, grad_output: Tensor) -> Tensor:
+        a, b = ctx.saved_inputs 
+        
+        def _backward(grad_output: ArrayType, a: ArrayType, b: ArrayType) -> List[ArrayType]:
+            return engine.dot(grad_output, b.T), engine.dot(a.T, grad_output)
+        
+        return list(map(Tensor, _backward(grad_output._array, a._array, b._array)))

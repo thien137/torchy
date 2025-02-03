@@ -5,12 +5,11 @@ from torchy.nn import functional as F
 from .module import Module
 
 class ReLU(Module):
-    def __init__(self, inplace: bool = False):
+    def __init__(self):
         super().__init__()
-        self.inplace = inplace 
     
     def forward(self, input: Tensor) -> Tensor: 
-        return F.relu(input, inplace=self.inplace)
+        return F.relu(input)
     
 class Sigmoid(Module):
     def forward(self, input: Tensor) -> Tensor:

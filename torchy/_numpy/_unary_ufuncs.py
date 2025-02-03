@@ -36,3 +36,6 @@ def sign(x: Tensor):
 
 def mean(x: Tensor):
     return Mean.apply(x)
+
+def sum(x: Tensor, axis=None):
+    return Sum.apply(x, axis=axis)

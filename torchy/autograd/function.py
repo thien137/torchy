@@ -1,7 +1,4 @@
-import torchy
-from torchy import Tensor
-
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Union
 
 # Built to resemble:
 # https://github.com/pytorch/pytorch/blob/main/torch/autograd/function.py#L320
@@ -18,7 +15,10 @@ class BackwardFunction:
         self.ctx = FunctionCtx()
 
     def backward(self, grad_output):
+        # Traverse gradient tree backwards
         grad_inputs = self._forward_cls.backward(self.ctx, grad_output)
+        if not isinstance(grad_inputs, list):
+            grad_inputs = [grad_inputs]
         for i in range(len(self.ctx.saved_inputs)):
             if self.ctx.saved_inputs[i].requires_grad:
                 self.ctx.saved_inputs[i].backward(grad_inputs[i])

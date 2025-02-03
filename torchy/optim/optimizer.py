@@ -3,19 +3,21 @@ from torchy import Tensor
 
 from typing import Any, Union, Iterable, TypeAlias
 
-ParamsT: TypeAlias = Union[Iterable[Tensor], Iterable[dict[str, Any]]]
+ParamsT: TypeAlias = Union[
+    Iterable[dict[str, Any]],
+    Iterable[tuple[str, Tensor]]
+]
 
 class Optimizer:
     
-    def __init__(self, params: ParamsT, defaults) -> None:
+    def __init__(self, params: ParamsT, defaults: dict[str, Any]) -> None:
         if isinstance(params, Tensor):
             raise TypeError(
                 "params argument must be an iterable of Tensors"
             )
         
-        self.param_groups: list[dict[str, Any]] = []
-        
-        param_groups = list(params)
-        
-        for param_group in param_groups:
-            self.add_param_group(cast(dic, param_group))
+        self.params = list(params)
+        self.defaults = defaults
+
+    def step(self):
+        raise NotImplementedError("step() must be implemented by subclass")
