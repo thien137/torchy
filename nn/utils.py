@@ -1,3 +1,0 @@
-
-def differentiable():
-    pass
