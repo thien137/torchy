@@ -19,5 +19,9 @@ class Optimizer:
         self.params = list(params)
         self.defaults = defaults
 
+    def zero_grad(self):
+        for _, param in self.params:
+            param.grad = None
+            
     def step(self):
         raise NotImplementedError("step() must be implemented by subclass")

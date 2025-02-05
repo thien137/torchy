@@ -4,6 +4,25 @@ from torchy.autograd import Function, FunctionCtx
 import torchy._engine_wrapper as engine
 from torchy._engine_wrapper import ArrayType
 
+class Flatten(Function):
+    @staticmethod
+    def forward(ctx: FunctionCtx, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        
+        def _forward(a: ArrayType) -> ArrayType:
+            return engine.flatten(a)
+        
+        return Tensor(_forward(a._array))
+    
+    @staticmethod
+    def backward(ctx: FunctionCtx, grad_output: Tensor) -> Tensor:
+        a = ctx.saved_inputs[0]
+        
+        def _backward(grad_output: ArrayType, a: ArrayType) -> ArrayType:
+            return grad_output.reshape(a.shape)
+        
+        return Tensor(_backward(grad_output._array, a._array))
+
 class Clip(Function):
     @staticmethod 
     def forward(ctx: FunctionCtx, a: Tensor, min_val: float, max_val: float) -> Tensor:

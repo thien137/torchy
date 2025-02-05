@@ -10,7 +10,7 @@ eps = 10e-12
 class Adam(Optimizer):
     def __init__(
         self, 
-        params: Iterator[Tensor],
+        params: Iterator[Tuple[str, Tensor]],
         lr: Union[float, Tensor] = 1e-3,
         betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
@@ -36,10 +36,6 @@ class Adam(Optimizer):
     def _initalize_state(self):
         self.params_state : dict[str, dict] = {}
 
-    def zero_grad(self):
-        for _, param in self.params:
-            param.zero_grad()
-
     def step(self):
         for name, param in self.params:
             if name not in self.params_state:
@@ -60,12 +56,11 @@ class Adam(Optimizer):
 
     def _step(self, param: Tensor, state: dict[str, Union[Tensor, int, float]]):
         state["t"] += 1
-
+        
         if state["maximize"]:
             gt = -param.grad
         else:
             gt = param.grad
-        
         if state["weight_decay"]:
             gt += state["weight_decay"]*param
         

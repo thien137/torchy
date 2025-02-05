@@ -86,7 +86,7 @@ class Linear(Function):
         def _backward(grad_output: ArrayType, input: ArrayType, weight: ArrayType, bias: ArrayType) -> List[ArrayType]:
             grad_input = engine.dot(grad_output, weight.T)
             grad_weight = engine.dot(input.T, grad_output)
-            grad_bias = engine.dot(engine.ones((1, grad_output.shape[0])), grad_output).T
+            grad_bias = engine.dot(engine.ones((1, grad_output.shape[0])), grad_output).T.flatten()
             
             return grad_input, grad_weight, grad_bias
         

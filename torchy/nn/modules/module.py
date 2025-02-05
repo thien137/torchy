@@ -55,7 +55,7 @@ class Module:
     
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         for _name, param in self.named_parameters(recurse=recurse):
-            yield param
+            yield _name, param
 
     def modules(self) -> Iterator['Module']:
         for _, module in self.named_modules():

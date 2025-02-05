@@ -77,6 +77,15 @@ class Tensor:
     def __truediv__(self, other):
         return torchy.divide(self, other)
     
+    def __pow__(self, other):
+        return torchy.pow(self, other)
+    
+    __radd__ = __add__
+    __rmul__ = __mul__
+    __rsub__ = __sub__
+    __rtruediv__ = __truediv__
+    __rpow__ = __pow__
+    
     def backward(
             self, grad_output: Optional['Tensor'] = None
     ):
@@ -119,3 +128,6 @@ class Tensor:
     
     def size(self, dim: int):
         return self._array.shape[dim]
+    
+    def item(self):
+        return self._array.item()
